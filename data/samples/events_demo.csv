@@ -1,0 +1,4 @@
+product_name,source_name,event_time,payload_json
+Boot Platform,CSV Demo Source,2026-02-05T10:00:00Z,"{""latency_ms"":420,""status_code"":200,""region"":""us-east""}"
+Boot Platform,CSV Demo Source,2026-02-05T10:05:00Z,"{""latency_ms"":610,""status_code"":500,""region"":""us-east""}"
+Boot Platform,CSV Demo Source,2026-02-05T10:10:00Z,"{""latency_ms"":390,""status_code"":200,""region"":""us-west""}"
