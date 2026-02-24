@@ -2,52 +2,64 @@
 
 ## Overview
 
-This project implements a simplified enterprise-style SLA monitoring system.
+This project implements a simplified enterprise-style SLA monitoring service.
 
-It simulates how real backend systems evaluate service-level agreements based on incoming metrics and compute overall system health.
+It simulates how real backend systems evaluate Service Level Agreements (SLAs) using time-series metrics and compute overall system health.
 
 The system supports:
 
-- Defining SLAs in the database
-- Storing time-series metric data
-- Evaluating SLAs over rolling time windows
-- Aggregating overall system health
-- Returning proper HTTP status codes (200, 206, 503)
+- Configurable SLA definitions stored in the database
+- Time-windowed metric evaluation
+- Multi-SLA aggregation
+- Dynamic system health classification
+- Proper HTTP health signaling (200, 206, 503)
+- Infrastructure-level health checks
 
-This mirrors how internal monitoring systems work in production environments.
+This architecture mirrors production observability and reliability systems.
+
+---
+
+## Tech Stack
+
+Backend: FastAPI (Python)  
+Database: MySQL  
+ORM: SQLAlchemy  
+Migrations: Alembic  
+ASGI Server: Uvicorn  
+Version Control: Git & GitHub  
 
 ---
 
 ## Architecture Overview
 
-This service is structured into four layers:
+The service is structured into four layers:
 
-1. Routers (API Layer)
-   - Built with FastAPI
-   - Handle HTTP requests and responses
-   - Endpoints:
-     - /sla-definitions
-     - /dashboard/summary
-     - /health
+### 1. API Layer (FastAPI Routers)
+- /sla-definitions
+- /dashboard/summary
+- /healthz
 
-2. Services (Business Logic Layer)
-   - Contains SLA evaluation logic
-   - Computes pass, fail, or no_data
-   - Applies rolling time window logic
-   - File: backend/app/services/sla_eval.py
+Handles HTTP request/response flow.
 
-3. Models (ORM Layer)
-   - SQLAlchemy models
-   - SLADefinition
-   - MetricPoint
-   - DataSource
+### 2. Service Layer
+- SLA evaluation engine
+- Rolling window computation
+- Pass / fail / no_data classification
+- System-wide health escalation logic
 
-4. Database (Persistence Layer)
-   - MySQL
-   - Stores:
-     - SLA definitions
-     - Time-series metric data
-     - Data sources
+File: `backend/app/services/sla_eval.py`
+
+### 3. ORM Layer (SQLAlchemy Models)
+- SLADefinition
+- MetricPoint
+- DataSource
+
+Encapsulates database schema and persistence logic.
+
+### 4. Database Layer
+- MySQL
+- Stores SLA configurations and time-series metrics
+- Drives real-time SLA evaluation
 
 ---
 
@@ -55,43 +67,78 @@ This service is structured into four layers:
 
 Client → FastAPI Router → SLA Evaluation Service → Database → JSON Response
 
-The /dashboard/summary endpoint:
+The `/dashboard/summary` endpoint:
 
 - Evaluates all active SLAs
-- Counts pass, fail, no_data
-- Computes overall system health
-- Returns proper HTTP status codes:
+- Aggregates pass / fail / no_data counts
+- Computes overall system status
+- Returns appropriate HTTP status codes:
 
-Overall Status | HTTP Code
-healthy        | 200
-degraded       | 206
-critical       | 503
+| System State | HTTP Code |
+|--------------|----------|
+| healthy      | 200      |
+| degraded     | 206      |
+| critical     | 503      |
 
-This mimics real-world health signaling used in load balancers and Kubernetes.
+This simulates real-world service health signaling used by load balancers and orchestration systems.
 
 ---
 
 ## System Diagram
 
-Client / curl
-      |
-      v
-FastAPI Router
- (/dashboard)
-      |
-      v
-SLA Evaluation Service
-      |
-      v
-MySQL Database
-(metric_points, sla_definitions)
+```
+                +-------------------+
+                |   Client / curl   |
+                +---------+---------+
+                          |
+                          v
+                +-------------------+
+                |   FastAPI Router  |
+                |   (/dashboard)    |
+                +---------+---------+
+                          |
+                          v
+                +-------------------+
+                | SLA Eval Service  |
+                +---------+---------+
+                          |
+                          v
+                +-------------------+
+                |     MySQL DB      |
+                | metric_points     |
+                | sla_definitions   |
+                +-------------------+
+```
+
+---
+
+## Logical Architecture View
+
+Decision Support System
+│
+├── API Layer
+│   ├── SLA Definitions
+│   ├── Dashboard Summary
+│   └── Health Check (/healthz)
+│
+├── Service Layer
+│   └── SLA Evaluation Engine
+│
+├── ORM Layer
+│   ├── SLADefinition
+│   ├── MetricPoint
+│   └── DataSource
+│
+└── Database
+    └── MySQL (time-series metric storage)
 
 ---
 
 ## Example API Usage
 
-Create an SLA:
+### Create an SLA
 
+```
 curl -X POST http://127.0.0.1:8000/sla-definitions/ \
   -H "Content-Type: application/json" \
   -d '{
@@ -103,50 +150,60 @@ curl -X POST http://127.0.0.1:8000/sla-definitions/ \
     "window_minutes": 60,
     "is_active": true
 }'
+```
 
-Insert a metric (via Python script):
+### Insert a Metric
 
+```
 ./.venv/bin/python -c "
 from datetime import datetime
 from app.db import SessionLocal
 from app.models.metric_point import MetricPoint
 db=SessionLocal()
 now=datetime.utcnow()
-mp=MetricPoint(product_id=2, metric_name='latency_ms', ts_bucket=now, value=200.0, computed_at=now)
+mp=MetricPoint(product_id=2, metric_name='latency_ms',
+               ts_bucket=now, value=200.0, computed_at=now)
 db.add(mp)
 db.commit()
 db.close()
 "
+```
 
-Check dashboard health:
+### Check Dashboard Health
 
+```
 curl -i http://127.0.0.1:8000/dashboard/summary
+```
 
-Example healthy response:
+### Infrastructure Health Check
 
+```
+curl -i http://127.0.0.1:8000/healthz
+```
+
+Healthy system example:
+
+```
+HTTP/1.1 200 OK
 {
-  "total_slas": 1,
-  "passing": 1,
-  "failing": 0,
-  "no_data": 0,
   "overall_status": "healthy"
 }
+```
 
-Example critical response:
+Critical system example:
 
+```
+HTTP/1.1 503 Service Unavailable
 {
-  "total_slas": 1,
-  "passing": 0,
-  "failing": 1,
-  "no_data": 0,
   "overall_status": "critical"
 }
+```
 
 ---
 
 ## Multi-SLA Flexibility
 
-The system supports multiple SLA types without code changes.
+The system supports multiple SLA types without code modification.
 
 Examples:
 - latency_ms
@@ -160,7 +217,19 @@ Each SLA defines:
 - statistic
 - rolling window
 
-This allows flexible SLA monitoring across different metrics.
+This enables flexible monitoring across heterogeneous metrics.
+
+---
+
+## Future Improvements
+
+- Add data_source_id directly to metric_points (remove temporary product_id mapping)
+- Support additional aggregation strategies and custom SLA expressions
+- Add authentication (API key or JWT)
+- Implement background ingestion jobs
+- Integrate alerting (Slack, email, webhook)
+- Add caching for dashboard summary
+- Build visualization layer for SLA trend analysis
 
 ---
 
@@ -169,11 +238,12 @@ This allows flexible SLA monitoring across different metrics.
 This is not a simple CRUD application.
 
 It demonstrates:
-- Time-windowed metric evaluation
-- Aggregated system health computation
-- Service-layer separation
-- Proper HTTP semantics
-- Database-driven business rules
-- Monitoring system design principles
 
-This architecture reflects patterns used in internal observability and reliability systems.
+- Time-series metric evaluation
+- Business-rule-driven health escalation
+- Service-layer separation
+- Proper HTTP health semantics
+- Database-backed configuration
+- Observability system design principles
+
+This reflects architectural patterns used in real backend reliability and monitoring systems.
