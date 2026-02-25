@@ -233,6 +233,22 @@ This enables flexible monitoring across heterogeneous metrics.
 
 ---
 
+## API Screenshots
+
+### Swagger Overview
+![Swagger Overview](docs/images/swagger-overview.png)
+
+### Create SLA Request
+![Create SLA](docs/images/create-sla-request.png)
+
+### Dashboard Healthy (HTTP 200)
+![Healthy](docs/images/dashboard-healthy.png)
+
+### Dashboard Critical (HTTP 503)
+![Critical](docs/images/dashboard-critical.png)
+
+---
+
 ## Why This Project Matters
 
 This is not a simple CRUD application.
