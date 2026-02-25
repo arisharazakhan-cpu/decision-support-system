@@ -1,5 +1,11 @@
 # Decision Support System – SLA Monitoring Service
 
+![Python](https://img.shields.io/badge/Python-3.11-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-Backend-green)
+![MySQL](https://img.shields.io/badge/MySQL-Database-orange)
+![SQLAlchemy](https://img.shields.io/badge/ORM-SQLAlchemy-red)
+![Status](https://img.shields.io/badge/Status-Active-brightgreen)
+
 ## Overview
 
 This project implements a simplified enterprise-style SLA monitoring service.
